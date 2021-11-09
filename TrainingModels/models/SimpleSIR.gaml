@@ -1,6 +1,6 @@
 /**
 * Name: SimpleSIR
-* Based on the internal empty template. 
+* Based on ideas from https://www.washingtonpost.com/graphics/2020/world/corona-simulator/ 
 * Author: kevinchapuis
 * Tags: 
 */
@@ -19,8 +19,13 @@ global {
 	float i_prop_start <- 0.05;
 	
 	// Policy
-	float social_distancing <- -1.0;
-	float allowed_workers <- 0.2;
+	float social_distancing <- -1.0 parameter:true among:[-1.0,0.0,5.0,10.0,20.0] category:"policy";
+	float allowed_workers <- 0.2 parameter:true min:0.0 max:1.0 category:"policy";
+	
+	int time_after_realeasing_policies <- 0 parameter:true min:0 category:"policy";
+	
+	bool quarantine <- false parameter:true category:"policy";
+	bool lockdown <- false parameter:true category:"policy";
 	
 	// Display
 	map<string,rgb> state_colors <- ["S"::#green,"I"::#red,"R"::#blue];
@@ -36,6 +41,12 @@ global {
 		do define_social_space;
 	}
 	
+	/*
+	 * Define a personal zone of social contact for agent
+	 * -1 = no social distancing
+	 * 0 = perfect social distancing (no contact)
+	 * 10 = a small area people can interact around them
+	 */
 	action define_social_space {
 		list<people> free_riders <- (allowed_workers*nb) among people;
 		ask free_riders {social_space <- world.shape;}
@@ -43,6 +54,21 @@ global {
 			if social_distancing=0 {social_space <- nil;} 
 			else {social_space <- social_distancing < 0 ? world.shape : self buffer social_distancing;}
 		}
+	}
+	
+	/*
+	 * Build zones where agent are lock inside 
+	 */
+	action define_lockdown_space {
+		list<geometry> lspace <- world.shape to_squares (4,false);
+		ask people { allowed_area <- one_of(lspace); }
+	}
+	
+	/*
+	 * Releasing policy after "n" time step
+	 */
+	reflex realease_policy when:time_after_realeasing_policies > 0 and cycle = time_after_realeasing_policies {
+		ask people { social_space <- world.shape; allowed_area <- world.shape; }
 	}
 	
 }
@@ -56,17 +82,18 @@ species people skills:[moving] {
 	// Move
 	point target;
 	geometry social_space;
+	geometry allowed_area;
 	
 	reflex move when: social_space!=nil {
-		if target=nil {target <- any_location_in(social_space);} 
+		if target=nil {target <- any_location_in(social_space union allowed_area);} 
 		do goto target:target;
 		if target distance_to self < 1#m {target <- nil; location <- target;}
 	}
 	
 	reflex infect when:state="I" { 
-		//ask people where (state="S") overlapping (self buffer contact_dist) { if flip(proba_infect) { do infected; } }
+		if quarantine {social_space <- nil;}
 		ask people where (each.state="S") at_distance contact_dist { do infected; }
-		if cycle-cycle_infect >= recover_after { state <- "R"; }
+		if cycle-cycle_infect >= recover_after { state <- "R"; if quarantine {social_space <- world.shape;} }
 	}
 	
 	action infected {
