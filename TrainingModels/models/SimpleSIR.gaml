@@ -11,7 +11,7 @@ model SimpleSIR
 global {
 	
 	// Global
-	int nb <- 100;
+	int nb <- 500;
 	
 	// Epidemic
 	float contact_dist <- 2#m;
@@ -35,8 +35,17 @@ global {
 	int state_i -> people count (each.state="I");
 	int state_r -> people count (each.state="R");
 	
+	// GIS data
+	file buildings_shapefile <- file("../includes/buildings.shp");
+	file roads_shapefile <- file("../includes/roads.shp");
+	graph road_network;
+	geometry shape <- envelope(roads_shapefile);
+	
 	init {
-		create people number:nb;
+		road_network <- as_edge_graph(roads_shapefile);
+		create people number:nb{
+			location <- any_location_in(one_of(roads_shapefile));
+		}
 		ask int(i_prop_start*nb) among people {do infected;}
 		do define_social_space;
 	}
@@ -86,7 +95,7 @@ species people skills:[moving] {
 	
 	reflex move when: social_space!=nil {
 		if target=nil {target <- any_location_in(social_space union allowed_area);} 
-		do goto target:target;
+		do goto target:target on: road_network;
 		if target distance_to self < 1#m {target <- nil; location <- target;}
 	}
 	
@@ -111,7 +120,18 @@ species people skills:[moving] {
 experiment xp {
 	output {
 		display main {
+			graphics "Drawing buildings" {
+      			loop building over: buildings_shapefile{
+      				draw building color:#grey border:#black;
+      			}
+   			} 
+   			graphics "Drawing roads" {
+      			loop road over: roads_shapefile{
+      				draw road color:#red;
+      			}
+   			}
 			species people;
+			
 		}
 		display chart {
 			chart "state dynamic" type:series {
