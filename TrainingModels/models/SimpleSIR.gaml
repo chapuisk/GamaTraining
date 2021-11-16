@@ -11,21 +11,31 @@ model SimpleSIR
 global {
 	
 	// Global
+<<<<<<< Updated upstream
 	int nb <- 100;
 	
 	// Epidemic
 	float contact_distance <- 2#m;
 	int recover_after <- 50;
+=======
+	int nb_people <- 1000;
+	
+	// Epidemic
+	float contact_dist <- 2#m;
+	int recover_after <- 50#cycle;
+>>>>>>> Stashed changes
 	float i_prop_start <- 0.05;
 	
 	// Policy
 	float social_distancing <- -1.0 parameter:true among:[-1.0,0.0,5.0,10.0,20.0] category:"policy";
 	float allowed_workers <- 0.2 parameter:true min:0.0 max:1.0 category:"policy";
 	
-	int time_after_realeasing_policies <- 0 parameter:true min:0 category:"policy";
+	int time_after_realeasing_policies <- 100 parameter:true min:0 category:"policy";
 	
-	bool quarantine <- false parameter:true category:"policy";
-	bool lockdown <- false parameter:true category:"policy";
+	bool quarantine <- true parameter:true category:"policy";
+	bool lockdown <- true parameter:true category:"policy";
+	int nb_lockdown_space <- 4 parameter:true among:[4,9,16,25,36,49,64,81,100] category:"policy";
+	list<geometry> lspace;
 	
 	// Display
 	map<string,rgb> state_colors <- ["S"::#green,"I"::#red,"R"::#blue];
@@ -36,9 +46,19 @@ global {
 	int state_r -> people count (each.state="R");
 	
 	init {
+<<<<<<< Updated upstream
 		create people number:nb;
 		ask int(i_prop_start*nb) among people {do infected;}
+=======
+		road_network <- as_edge_graph(roads_shapefile);
+		create people number:nb_people{
+			home <- one_of(buildings_shapefile);
+			location <- any_location_in(one_of(buildings_shapefile));
+		}
+		ask int(i_prop_start*nb_people) among people {do infected;}
+>>>>>>> Stashed changes
 		do define_social_space;
+		if lockdown{ do define_lockdown_space; }
 	}
 	
 	/*
@@ -48,7 +68,7 @@ global {
 	 * 10 = a small area people can interact around them
 	 */
 	action define_social_space {
-		list<people> free_riders <- (allowed_workers*nb) among people;
+		list<people> free_riders <- (allowed_workers*nb_people) among people;
 		ask free_riders {social_space <- world.shape;}
 		ask people - free_riders {
 			if social_distancing=0 {social_space <- nil;} 
@@ -60,15 +80,21 @@ global {
 	 * Build zones where agent are lock inside 
 	 */
 	action define_lockdown_space {
-		list<geometry> lspace <- world.shape to_squares (4,false);
-		ask people { allowed_area <- one_of(lspace); }
+		lspace <-   to_rectangles(world.shape,sqrt(nb_lockdown_space),sqrt(nb_lockdown_space),true);
+		loop space over: lspace{
+			if buildings_shapefile.contents none_matches (each overlaps space){
+				lspace <- lspace-space;
+			}
+		}
+		ask people { allowed_area <- first(lspace where (each overlaps home)); }
 	}
 	
 	/*
 	 * Releasing policy after "n" time step
 	 */
 	reflex realease_policy when:time_after_realeasing_policies > 0 and cycle = time_after_realeasing_policies {
-		ask people { social_space <- world.shape; allowed_area <- world.shape; }
+		write "realease policy";
+		ask people { social_space <- world.shape; allowed_area <- world.shape; quarantine <- false; lockdown <- false;}
 	}
 	
 }
@@ -77,28 +103,56 @@ species people skills:[moving] {
 	
 	// Epi
 	string state <- "S" among:["S","I","R"];
-	int cycle_infect;
+	int cycle_recover;
 	
 	// Move
 	point target;
 	geometry social_space;
-	geometry allowed_area;
+	geometry allowed_area <- world.shape;
 	
+	geometry home;
+	
+<<<<<<< Updated upstream
 	reflex move when: social_space!=nil {
 		if target=nil {target <- any_location_in(social_space union allowed_area);} 
 		do goto target:target;
 		if target distance_to self < 1#m {target <- nil; location <- target;}
+=======
+	reflex move when: not(state="I" and quarantine and (location overlaps home)) {
+		if target=nil {
+			list<geometry> buildings_in_allowed_area <- buildings_shapefile.contents where (each overlaps allowed_area);
+			target <- any_location_in(one_of(buildings_in_allowed_area));
+		}
+		do goto target:target on: road_network;
+		if target distance_to self < 1#m {
+			target <- nil; 
+			location <- target;
+		}
+>>>>>>> Stashed changes
 	}
 	
 	reflex infect when:state="I" { 
 		if quarantine {social_space <- nil;}
+<<<<<<< Updated upstream
 		ask people where (each.state="S") at_distance contact_distance { do infected; }
 		if cycle-cycle_infect >= recover_after { state <- "R"; if quarantine {social_space <- world.shape;} }
+=======
+		ask people where (each.state="S") at_distance contact_dist { 
+			do infected;
+		}
+		if cycle_recover <= cycle { 
+			state <- "R"; 
+			if quarantine {
+				social_space <- world.shape;
+			}
+		}
+>>>>>>> Stashed changes
 	}
 	
 	action infected {
+		if quarantine {target <- any_location_in(home);}
 		state <- "I";
-		cycle_infect <- cycle;
+		cycle_recover <- cycle + truncated_gauss ({recover_after,15});
 	}
 	
 	aspect default {
@@ -111,6 +165,24 @@ species people skills:[moving] {
 experiment xp {
 	output {
 		display main {
+<<<<<<< Updated upstream
+=======
+			graphics "Drawing buildings" {
+      			loop building over: buildings_shapefile{
+      				draw building color:#grey border:#black;
+      			}
+   			} 
+   			graphics "Drawing roads" {
+      			loop road over: roads_shapefile{
+      				draw road color:#red;
+      			}
+   			}
+   			graphics "Lockdown limits" {
+      			loop s over: lspace{
+      				draw s empty:true color:#blue;
+      			}
+   			}
+>>>>>>> Stashed changes
 			species people;
 		}
 		display chart {
