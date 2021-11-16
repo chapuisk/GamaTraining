@@ -12,10 +12,11 @@ global {
 	
 	// Global
 	int nb <- 500;
+	float step <- 1#h;
 	
 	// Epidemic
 	float contact_dist <- 2#m;
-	int recover_after <- 50;
+	float recover_after <- 10#day;
 	float i_prop_start <- 0.05;
 	
 	// Policy
@@ -37,17 +38,25 @@ global {
 	
 	// GIS data
 	file buildings_shapefile <- file("../includes/buildings.shp");
+	
 	file roads_shapefile <- file("../includes/roads.shp");
 	graph road_network;
-	geometry shape <- envelope(roads_shapefile);
+	
+	geometry shape <- envelope(buildings_shapefile);
 	
 	init {
+		
+		create building from:buildings_shapefile;
 		road_network <- as_edge_graph(roads_shapefile);
-		create people number:nb{
-			location <- any_location_in(one_of(roads_shapefile));
+		create people number:nb {
+			home <- any(building); 
+			work_schoolplace <- any(building);
+			location <- any_location_in(home);
+			agenda <- [rnd(7,9)::work_schoolplace,rnd(11,13)::nil,rnd(16,19)::nil,rnd(19,22)::home];
 		}
 		ask int(i_prop_start*nb) among people {do infected;}
 		do define_social_space;
+		
 	}
 	
 	/*
@@ -90,19 +99,26 @@ species people skills:[moving] {
 	
 	// Move
 	point target;
+	building building_target;
 	geometry social_space;
 	geometry allowed_area;
 	
-	reflex move when: social_space!=nil {
-		if target=nil {target <- any_location_in(social_space union allowed_area);} 
+	// Agenda
+	map<int,building> agenda;
+	building home;
+	building work_schoolplace;
+	
+	reflex move when: agenda.keys contains current_date.hour and social_space!=nil {
+		building_target <- agenda[current_date.hour]=nil?any(building):agenda[current_date.hour];
+		target <- target=nil?any_location_in(building_target):target; 
 		do goto target:target on: road_network;
-		if target distance_to self < 1#m {target <- nil; location <- target;}
+		if target=nil or location distance_to target < 5#m { target <- nil; do wander bounds:building_target; }
 	}
 	
 	reflex infect when:state="I" { 
 		if quarantine {social_space <- nil;}
 		ask people where (each.state="S") at_distance contact_dist { do infected; }
-		if cycle-cycle_infect >= recover_after { state <- "R"; if quarantine {social_space <- world.shape;} }
+		if (cycle-cycle_infect) * step >= recover_after { state <- "R"; if quarantine {social_space <- world.shape;} }
 	}
 	
 	action infected {
@@ -117,19 +133,20 @@ species people skills:[moving] {
 	
 }
 
+species building {
+	string type;
+	aspect default { draw shape color:#transparent border:#black;}
+}
+
 experiment xp {
 	output {
 		display main {
-			graphics "Drawing buildings" {
-      			loop building over: buildings_shapefile{
-      				draw building color:#grey border:#black;
-      			}
-   			} 
    			graphics "Drawing roads" {
       			loop road over: roads_shapefile{
       				draw road color:#red;
       			}
    			}
+   			species building;
 			species people;
 			
 		}
