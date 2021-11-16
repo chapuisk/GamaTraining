@@ -20,7 +20,7 @@ global {
 	
 	// Policy
 	float social_distancing <- -1.0 parameter:true among:[-1.0,0.0,5.0,10.0,20.0] category:"policy";
-	float allowed_workers <- 0.2 parameter:true min:0.0 max:1.0 category:"policy";
+	float free_rider <- 0.2 parameter:true min:0.0 max:1.0 category:"policy";
 	
 	int time_after_realeasing_policies <- 0 parameter:true min:0 category:"policy";
 	
@@ -48,7 +48,7 @@ global {
 	 * 10 = a small area people can interact around them
 	 */
 	action define_social_space {
-		list<people> free_riders <- (allowed_workers*nb) among people;
+		list<people> free_riders <- (free_rider*nb) among people;
 		ask free_riders {social_space <- world.shape;}
 		ask people - free_riders {
 			if social_distancing=0 {social_space <- nil;} 
@@ -126,11 +126,11 @@ experiment xplo type:batch repeat:20
 		
 	//parameter nb_people var:nb among:[100,500,1000,2000,5000];
 	parameter social_distancing var:social_distancing among:[-1.0,0,5.0,20.0];
-	parameter free_riders var:allowed_workers min:0.0 max:1.0 step:0.2;
+	parameter free_rider var:free_rider min:0.0 max:1.0 step:0.2;
 	
 	permanent {
 		display main {
-			chart "states" type:series x_serie_labels:string(social_distancing)+"\n"+string(with_precision(allowed_workers,1)) {
+			chart "states" type:series x_serie_labels:string(social_distancing)+"\n"+string(with_precision(free_rider,1)) {
 				data "Susceptible" value:mean(simulations collect (each.state_s)) color:state_colors["S"];
 				data "Infected" value:mean(simulations collect (each.state_i)) color:state_colors["I"];
 				data "Recovered" value:mean(simulations collect (each.state_r)) color:state_colors["R"];
