@@ -14,7 +14,7 @@ global {
 	int nb <- 100;
 	
 	// Epidemic
-	float contact_dist <- 2#m;
+	float contact_distance <- 2#m;
 	int recover_after <- 50;
 	float i_prop_start <- 0.05;
 	
@@ -92,7 +92,7 @@ species people skills:[moving] {
 	
 	reflex infect when:state="I" { 
 		if quarantine {social_space <- nil;}
-		ask people where (each.state="S") at_distance contact_dist { do infected; }
+		ask people where (each.state="S") at_distance contact_distance { do infected; }
 		if cycle-cycle_infect >= recover_after { state <- "R"; if quarantine {social_space <- world.shape;} }
 	}
 	
@@ -103,7 +103,7 @@ species people skills:[moving] {
 	
 	aspect default {
 		draw cross(1) color:state_colors[state];
-		draw circle(contact_dist) color:blend(state_colors[state],#transparent,0.1);
+		draw circle(contact_distance) color:blend(state_colors[state],#transparent,0.1);
 	}
 	
 }
