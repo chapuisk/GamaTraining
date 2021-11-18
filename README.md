@@ -9,7 +9,7 @@ This repository is the host of code for a 3 days long intensive Gama training se
 
 ## Training supports
 
-- All slide courses are available in the (slides)[TODO] forlder
+- All slide courses are available in the [slides][https://drive.google.com/drive/folders/15_ZA_74oIqr4NDibJVyrxZAU2e7VqQn2?usp=sharing] forlder
 - The source code of models are available under the [GamaTraining](https://github.com/chapuisk/GamaTraining/) forlder
 
 ## How-to for the Gama models
