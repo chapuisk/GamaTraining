@@ -90,7 +90,11 @@ species people skills:[moving] {
 	bool free_rider <- false;
 	
 	reflex move {
-		if target=nil {target <- any_location_in(free_rider?any_location_in(one_of(Building)):any_location_in(one_of(Building where (each overlaps social_space))));} 
+		if target=nil {
+			target <- free_rider?
+			any_location_in(one_of(Building)):
+			any_location_in(one_of(Building where (each overlaps social_space)));
+		} 
 		do goto target:target on:road_network; 
 		if target distance_to self < 1#m {target <- nil; location <- target;}
  	}
