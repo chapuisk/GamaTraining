@@ -153,14 +153,6 @@ species Building{
 
 experiment NewModel1 type: gui {
 	/** Insert here the definition of the input and output of the model */
-	
-	parameter one var:n;
-	
-	init {
-		create simulation;
-		create simulation with:[seed::35280358,n::39];
-	}
-	
 	output {
 		display main {
 			graphics "Drawing roads" {
@@ -171,10 +163,24 @@ experiment NewModel1 type: gui {
    			species Building;
 			species people;
 			graphics areas { loop area over:locked_areas {draw area color:#transparent border:#black;} }
+			overlay position: {5, 4} size: {200 #px, 130 #px} rounded: true transparency: 0.2 {
+				draw ("" + current_date.day + "/" + current_date.month + "/" + current_date.year) font: font("Helvetica", 30, #bold) at: {15 #px, 10 #px} anchor: #top_left color: #white;
+				string dispclock <- current_date.hour < 10 ? "0" + current_date.hour : "" + current_date.hour;
+				dispclock <- current_date.minute < 10 ? dispclock + ":0" + current_date.minute : dispclock + ":" + current_date.minute;
+				dispclock <- current_date.second < 10 ? dispclock + ":0" + current_date.second : dispclock + ":" + current_date.second;
+				draw dispclock font: font("Helvetica", 20, #bold) at: {15 #px, 60 #px} anchor: #top_left color: #white;
+				
+				draw "step: " + step + " sec" font: font("Helvetica", 20, #bold) at: {15 #px, 100 #px} anchor: #top_left color: #white;
+			}
 		}
 		display chart {
 			chart "state dynamic" type:series {
 				loop stt over:["S","I","R"] {data stt value:people count (each.state=stt) color:state_colors[stt];}
+			}	
+		}
+		display chart2{	
+			chart "activity distribution" type: pie{
+				loop act over: ["home","eat","work"] {data act value:people count (each.activity=act);}
 			}
 		}
 	}

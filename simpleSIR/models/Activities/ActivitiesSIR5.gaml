@@ -153,14 +153,6 @@ species Building{
 
 experiment NewModel1 type: gui {
 	/** Insert here the definition of the input and output of the model */
-	
-	parameter one var:n;
-	
-	init {
-		create simulation;
-		create simulation with:[seed::35280358,n::39];
-	}
-	
 	output {
 		display main {
 			graphics "Drawing roads" {
@@ -175,9 +167,27 @@ experiment NewModel1 type: gui {
 		display chart {
 			chart "state dynamic" type:series {
 				loop stt over:["S","I","R"] {data stt value:people count (each.state=stt) color:state_colors[stt];}
+			}	
+		}
+		display chart2{	
+			chart "activity distribution" type: pie{
+				loop act over: ["home","eat","work"] {data act value:people count (each.activity=act);}
 			}
 		}
 	}
+}
+
+experiment main type:gui {
+	/* Some code */
+}
+
+experiment analysis type:batch until:cycle=100 { 
+	parameter param1 var:my_variable among:[1,2,3,4];
+	parameter param2 var:another_variable min:1 max:4;
+}
+
+experiment calibration type:batch until:cycle=100 { 
+	/* Some code */ 
 }
 
 
